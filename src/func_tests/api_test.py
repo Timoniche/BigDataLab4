@@ -62,7 +62,7 @@ class FunctionalApiTest:
             image_name=filename,
         )[0][0]
 
-        assert is_male_from_db == True, f'Expected {True}, got {is_male_from_db}'
+        assert is_male_from_db is True, f'Expected {True}, got {is_male_from_db}'
 
         self.log.info('Db Test Passed')
 

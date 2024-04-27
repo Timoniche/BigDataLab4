@@ -24,10 +24,13 @@ from fastapi import FastAPI, UploadFile, File  # noqa: E402
 from database import Database  # noqa: E402
 from images_dataset import IMAGE_SIZE, extract_hog_features  # noqa: E402
 from service import Service  # noqa: E402
+from kafka_service import KafkaService  # noqa: E402
 from utils.common_utils import cur_file_path  # noqa: E402
 
 db = Database()
-service = Service(db)
+db_service = Service(db)
+
+kafka_service = KafkaService()
 
 app = FastAPI()
 
@@ -59,7 +62,8 @@ async def upload_file(file: UploadFile = File(...)):
         'is_male': 'male' if is_male else 'female',
     }
 
-    service.save_image_prediction(
+    kafka_service.send(response)
+    db_service.save_image_prediction(
         image_name=file.filename,
         is_male=True if is_male else False,
     )
@@ -68,7 +72,16 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 def main():
-    service.init_db()
+    logger = Logger(show=True)
+    log = logger.get_logger(__name__)
+
+    db_service.init_db()
+
+    def kafka_listener(data):
+        log.info(f'CONSUMER got: {data.value}')
+
+    kafka_service.register_kafka_listener(kafka_listener)
+
     uvicorn.run(
         'src.server:app',
         host='0.0.0.0',

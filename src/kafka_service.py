@@ -1,7 +1,9 @@
 import json
+import threading
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
+from kafka.errors import TopicAlreadyExistsError
 
 from logger import Logger
 
@@ -16,9 +18,13 @@ class KafkaService:
 
         self.topics = [NewTopic(name=self.topic_name, num_partitions=1, replication_factor=1)]
         self.admin_client = KafkaAdminClient(bootstrap_servers=self.kafka_servers)
-        self.admin_client.create_topics(
-            new_topics=self.topics,
-        )
+
+        try:
+            self.admin_client.create_topics(
+                new_topics=self.topics,
+            )
+        except TopicAlreadyExistsError as _:
+            self.log.warning(f'Topic {self.topic_name} already exists')
 
         self.consumer = self.setup_consumer()
         self.producer = self.setup_producer()
@@ -47,13 +53,16 @@ class KafkaService:
         self.producer.send(self.topic_name, data)
         self._ensure_buffer_messages_sent_to_broker()
 
-    def consume(self):
-        data = next(self.consumer)
+    def register_kafka_listener(self, listener):
+        def poll():
+            self.consumer.poll(timeout_ms=6000)
+            for msg in self.consumer:
+                self.log.info(f'Listening data: {msg}, data value: {msg.value}')
+                listener(msg)
 
-        self.log.info(f'data: {data}')
-        self.log.info(f'data value: {data.value}')
-
-        return data.value
+        t1 = threading.Thread(target=poll)
+        t1.start()
+        self.log.info('Started a background CONSUMER thread')
 
     def _ensure_buffer_messages_sent_to_broker(self):
         self.producer.flush()
