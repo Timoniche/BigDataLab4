@@ -5,8 +5,8 @@ pipeline {
         DOCKERHUB_CREDS = credentials('mle-template')
         DB_CREDS        = credentials('pgaas-lab2')
         VAULT_CREDS     = credentials('vault_lab_3')
-        PROJECT_NAME    = "BigDataLab3"
-        IMAGE_NAME      = "lab3"
+        PROJECT_NAME    = "BigDataLab4"
+        IMAGE_NAME      = "lab4"
         PG_DB           = "postgres"
         LANGUAGE    = "C.UTF-8"
         LANG        = "C.UTF-8"
