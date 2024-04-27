@@ -1,15 +1,11 @@
 from database import Database
-from logger import Logger
 
 
 class ImagePredictionsDAO:
     def __init__(self, db: Database):
-        logger = Logger(show=True)
-        self.log = logger.get_logger(__name__)
         self.db = db
 
     def init_table(self):
-        self.log.info('Initializing image_prediction table')
         self.db.execute(
             '''
             CREATE TABLE IF NOT EXISTS image_predictions (

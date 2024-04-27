@@ -63,24 +63,32 @@ async def upload_file(file: UploadFile = File(...)):
     }
 
     kafka_service.send(response)
-    db_service.save_image_prediction(
-        image_name=file.filename,
-        is_male=True if is_male else False,
-    )
 
     return response
 
 
-def main():
-    logger = Logger(show=True)
-    log = logger.get_logger(__name__)
+logger = Logger(show=True)
+log = logger.get_logger(__name__)
 
+
+def kafka_to_db_listener(data):
+    server_response = data.value
+
+    filename = server_response['filename']
+    is_male = server_response['is_male']
+
+    log.info('Kafka DB LISTENER: filename: {}, is_male: {}'.format(filename, is_male))
+
+    db_service.save_image_prediction(
+        image_name=filename,
+        is_male=True if is_male == 'male' else False,
+    )
+
+
+def main():
     db_service.init_db()
 
-    def kafka_listener(data):
-        log.info(f'CONSUMER got: {data.value}')
-
-    kafka_service.register_kafka_listener(kafka_listener)
+    kafka_service.register_kafka_listener(kafka_to_db_listener)
 
     uvicorn.run(
         'src.server:app',
