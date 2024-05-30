@@ -64,6 +64,7 @@ options {
                 dir("$PROJECT_NAME") {
                     sh 'docker compose up -d'
                     sh 'sleep 10'
+                    sh 'docker compose logs'
                 }
             }
         }
