@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDS = credentials('mle-template')
-        DB_CREDS        = credentials('pgaas-lab2')
-        PROJECT_NAME    = "BigDataLab4"
-        IMAGE_NAME      = "lab4"
-        PG_DB    = "postgres"
+        DOCKERHUB_CREDS  = credentials('mle-template')
+        DB_CREDS         = credentials('pgaas-lab2')
+        PROJECT_NAME     = "BigDataLab4"
+        IMAGE_NAME       = "lab4"
+        PG_DB            = "postgres"
+        TOPIC_NAME       = "image_predictions"
+        PARTITIONS_COUNT = 1
         LC_ALL   = "en_US.UTF-8"
         LANG     = "en_US.UTF-8"
         LANGUAGE = "en_US.UTF-8"
@@ -36,13 +38,15 @@ options {
                     echo PG_USER=$DB_CREDS_USR > .env
                     echo PG_PASSWORD=$DB_CREDS_PSW >> .env
                     echo PG_DB=$PG_DB >> .env
+                    echo TOPIC_NAME=$TOPIC_NAME >> .env
+                    echo PARTITIONS_COUNT=$PARTITIONS_COUNT >> .env
                 '''
             }
         }
 
         stage('Downloading docker-compose') {
             steps {
-                sh 'curl https://raw.githubusercontent.com/Timoniche/$PROJECT_NAME/main/CD/docker-compose.yml -o docker-compose.yml'
+                sh 'curl https://raw.githubusercontent.com/Timoniche/$PROJECT_NAME/main/docker-compose.yml -o docker-compose.yml'
                 sh 'ls'
             }
         }
@@ -50,6 +54,8 @@ options {
         stage('Running docker compose') {
             steps {
                 sh 'docker compose up -d'
+                sh 'sleep 10'
+                sh 'docker compose logs'
             }
         }
 
@@ -64,6 +70,7 @@ options {
         always {
             sh 'docker compose down'
             sh 'docker logout'
+            sh 'rm -f .env'
         }
     }
 }

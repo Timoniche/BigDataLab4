@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 
 from kafka import KafkaConsumer, KafkaProducer
@@ -12,7 +13,8 @@ class KafkaService:
         self.log = logger.get_logger(__name__)
 
         self.kafka_servers = ["kafka:9092"]
-        self.topic_name = 'image_predictions'
+        self.topic_name = os.environ.get('TOPIC_NAME')
+        self.log.info(f'Topic name: {self.topic_name}')
 
         self.consumer = self.setup_consumer()
         self.producer = self.setup_producer()
