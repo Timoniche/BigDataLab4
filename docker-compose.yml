@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.10'
 services:
   web:
     image: ddulaev/lab4:latest
@@ -12,9 +12,9 @@ services:
       - PG_DB=${PG_DB}
     build:
       dockerfile: DockerfileModel
-    command: bash -c "python src/images_dataset.py && python src/img_with_name_dataloader.py && coverage run -a src/unit_tests/test_hog_embeddings.py && coverage report -m --ignore-errors"
+    command: bash -c "python -m src.server"
     ports:
-      - "8000:8000"
+      - "8001:8001"
 
   db:
     image: 'postgres:14.1-alpine'
@@ -29,39 +29,34 @@ services:
       - "5432:5432"
     restart: on-failure
 
-  kafka:
-    image: 'bitnami/kafka:latest'
-    container_name: kafka
-    hostname: kafka
+  zookeeper:
+    image: bitnami/zookeeper:3.9
     ports:
-      - '9092:9092'
-    networks:
-      - app-tier
+      - "2181:2181"
     environment:
-      KAFKA_CFG_NODE_ID: 0
-      KAFKA_CFG_PROCESS_ROLES: controller,broker
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:29093
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - zookeeper_data:/bitnami
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
+  kafka:
+    image: bitnami/kafka:latest
     ports:
-      - "8090:8080"
-    depends_on:
-      - kafka
-    networks:
-      - app-tier
+      - "9092:9092"
     environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka:29092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_TOPIC_NAME=${TOPIC_NAME}
+      - KAFKA_TOPIC_PARTITIONS=${PARTITIONS_COUNT}
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka_data:/bitnami
 
 volumes:
   db-data:
-
-networks:
-  app-tier:
-    driver: bridge
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local
