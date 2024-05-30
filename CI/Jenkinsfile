@@ -63,7 +63,7 @@ options {
             steps {
                 dir("$PROJECT_NAME") {
                     sh 'docker compose up -d'
-                    sh 'sleep 10'
+                    sh 'sleep 40'
                     sh 'docker compose logs'
                 }
             }
