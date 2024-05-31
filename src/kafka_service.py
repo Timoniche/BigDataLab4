@@ -3,6 +3,7 @@ import os
 import threading
 
 from kafka import KafkaConsumer, KafkaProducer
+from kafka.errors import KafkaTimeoutError
 
 from logger import Logger
 
@@ -40,7 +41,11 @@ class KafkaService:
     def send(self, data: dict):
         self.log.info(f'data: {data}')
 
-        self.producer.send(self.topic_name, data)
+        try:
+            self.producer.send(self.topic_name, data)
+        except KafkaTimeoutError as e:
+            self.log.warning(f'Timeout while sending to kafka, exception: {e}')
+
         self._ensure_buffer_messages_sent_to_broker()
 
     def register_kafka_listener(self, listener):
